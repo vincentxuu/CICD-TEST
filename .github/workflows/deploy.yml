@@ -12,14 +12,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.LINODE_HOST }}
-          username: ${{ secrets.LINODE_USER }}
-          key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.LINODE_PORT }}
-
+      - name: install ssh keys
+          # check this thread to understand why its needed:
+          # <https://stackoverflow.com/a/70447517>
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.LINODE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.LINODE_HOST }} > ~/.ssh/known_hosts
       - name: Add known hosts
         run: |
           mkdir -p ~/.ssh
