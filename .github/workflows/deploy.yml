@@ -24,17 +24,13 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:${{ github.ref_name }}
   
-    - uses: actions/checkout@v2
     - name: Deploy to Linode (Dev)
+      if: github.ref == 'refs/heads/dev'
       uses: appleboy/ssh-action@dev
       with:
-        host: ${{ secrets.LINODE_HOST }}
+        host: ${{ secrets.LINODE_DEV_HOST }}
         username: ${{ secrets.LINODE_USER }}
         key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-      if: github.ref == 'refs/heads/dev'
-      env:
-        LINODE_HOST: ${{ secrets.LINODE_DEV_HOST }}
-        LINODE_USER: ${{ secrets.LINODE_USER }}
       run: |
         scp docker-compose.yml docker-compose.dev.yml ecosystem.config.js $LINODE_USER@$LINODE_HOST:~/node_app/
         ssh $LINODE_USER@$LINODE_HOST << EOF
@@ -46,9 +42,11 @@ jobs:
 
     - name: Deploy to Linode (Production)
       if: github.ref == 'refs/heads/main'
-      env:
-        LINODE_HOST: ${{ secrets.LINODE_PROD_HOST }}
-        LINODE_USER: ${{ secrets.LINODE_USER }}
+      uses: appleboy/ssh-action@dev
+      with:
+        host: ${{ secrets.LINODE_PROD_HOST }}
+        username: ${{ secrets.LINODE_USER }}
+        key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
       run: |
         scp docker-compose.yml docker-compose.prod.yml ecosystem.config.js $LINODE_USER@$LINODE_HOST:~/node_app/
         ssh $LINODE_USER@$LINODE_HOST << EOF
