@@ -24,34 +24,34 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:${{ github.ref_name }}
   
-    - name: Deploy to Linode (Dev)
+    - name: Deploy to Linode (Dev) - SSH
       if: github.ref == 'refs/heads/dev'
-      uses: appleboy/ssh-action@dev
+      uses: appleboy/ssh-action@v0.1.7 # Use a specific version instead of 'dev'
       with:
         host: ${{ secrets.LINODE_DEV_HOST }}
         username: ${{ secrets.LINODE_USER }}
         key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-      run: |
-        scp docker-compose.yml docker-compose.dev.yml ecosystem.config.js $LINODE_USER@$LINODE_HOST:~/node_app/
-        ssh $LINODE_USER@$LINODE_HOST << EOF
-          cd ~/node_app
-          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:dev
-          docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
-          docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-        EOF
+        script: |
+          scp docker-compose.yml docker-compose.dev.yml ecosystem.config.js ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_DEV_HOST }}:~/node_app/
+          ssh ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_DEV_HOST }} << EOF
+            cd ~/node_app
+            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:dev
+            docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+            docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+          EOF
 
-    - name: Deploy to Linode (Production)
+    - name: Deploy to Linode (Production) - SSH
       if: github.ref == 'refs/heads/main'
-      uses: appleboy/ssh-action@dev
+      uses: appleboy/ssh-action@v0.1.7 # Use a specific version instead of 'dev'
       with:
         host: ${{ secrets.LINODE_PROD_HOST }}
         username: ${{ secrets.LINODE_USER }}
         key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-      run: |
-        scp docker-compose.yml docker-compose.prod.yml ecosystem.config.js $LINODE_USER@$LINODE_HOST:~/node_app/
-        ssh $LINODE_USER@$LINODE_HOST << EOF
-          cd ~/node_app
-          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:main
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-        EOF
+        script: |
+          scp docker-compose.yml docker-compose.prod.yml ecosystem.config.js ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_PROD_HOST }}:~/node_app/
+          ssh ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_PROD_HOST }} << EOF
+            cd ~/node_app
+            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:main
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          EOF
