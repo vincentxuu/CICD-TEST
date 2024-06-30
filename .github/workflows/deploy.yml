@@ -1,59 +1,37 @@
 name: Deploy to Linode
 
-on:
-  push:
-    branches: [ main, dev ]
+   on:
+     push:
+       branches: [ dev ]
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        push: true
-        tags: ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:${{ github.ref_name }}
-    
-    - name: Install SSH Key
-      uses: shimataro/ssh-key-action@v2
-      with:
-        key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-        known_hosts: ${{ secrets.LINODE_KNOWN_HOSTS }}
-    
-    - name: Deploy to Linode (Dev)
-      if: github.ref == 'refs/heads/dev'
-      env:
-        LINODE_HOST: ${{ secrets.LINODE_DEV_HOST }}
-        LINODE_USER: ${{ secrets.LINODE_USER }}
-      run: |
-        scp docker-compose.yml docker-compose.dev.yml ecosystem.config.js $LINODE_USER@$LINODE_HOST:~/node_app/
-        ssh $LINODE_USER@$LINODE_HOST << EOF
-          cd ~/node_app
-          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:dev
-          docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
-          docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-        EOF
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       steps:
+       - uses: actions/checkout@v2
 
-    - name: Deploy to Linode (Production)
-      if: github.ref == 'refs/heads/main'
-      env:
-        LINODE_HOST: ${{ secrets.LINODE_PROD_HOST }}
-        LINODE_USER: ${{ secrets.LINODE_USER }}
-      run: |
-        scp docker-compose.yml docker-compose.prod.yml ecosystem.config.js $LINODE_USER@$LINODE_HOST:~/node_app/
-        ssh $LINODE_USER@$LINODE_HOST << EOF
-          cd ~/node_app
-          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:main
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-        EOF
+       - name: Install SSH Key
+         uses: shimataro/ssh-key-action@v2
+         with:
+           key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+           known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+       - name: Debug SSH connection
+         env:
+           HOST: ${{ secrets.LINODE_HOST }}
+           USER: ${{ secrets.LINODE_USER }}
+         run: |
+           ssh -v $USER@$HOST exit
+           
+       - name: Deploy to Linode
+         env:
+           HOST: ${{ secrets.LINODE_HOST }}
+           USER: ${{ secrets.LINODE_USER }}
+         run: |
+           scp -v docker-compose.yml docker-compose.dev.yml ecosystem.config.js $USER@$HOST:~/node_app/
+           ssh -v $USER@$HOST << EOF
+           cd ~/node_app
+           docker pull ***/node_app:dev
+           docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+           docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+           EOF
