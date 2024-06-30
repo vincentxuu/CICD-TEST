@@ -24,11 +24,11 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_HUB_USERNAME }}/node_app:${{ github.ref_name }}
     
-    - name: Install SSH key
-      uses: appleboy/ssh-action@v1.0.3
+    - name: Install SSH Key
+      uses: shimataro/ssh-key-action@v2
       with:
-        host: ${{ secrets.LINODE_HOST }}
         key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+        known_hosts: ${{ secrets.LINODE_KNOWN_HOSTS }}
     
     - name: Deploy to Linode (Dev)
       if: github.ref == 'refs/heads/dev'
