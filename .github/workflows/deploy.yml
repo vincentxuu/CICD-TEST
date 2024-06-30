@@ -18,6 +18,7 @@ jobs:
           host: ${{ secrets.LINODE_HOST }}
           username: ${{ secrets.LINODE_USER }}
           key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.LINODE_PORT }}
 
       - name: Add known hosts
         run: |
