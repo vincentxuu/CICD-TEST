@@ -31,6 +31,7 @@ jobs:
         host: ${{ secrets.LINODE_HOST }}
         known_hosts: ${{ secrets.LINODE_KNOWN_HOSTS }}
         username: ${{ secrets.LINODE_USER }}
+        port: ${{ secrets.LINODE_PORT }}
     
     - name: Deploy to Linode (Dev)
       if: github.ref == 'refs/heads/dev'
