@@ -29,7 +29,6 @@ jobs:
       with:
         host: ${{ secrets.LINODE_HOST }}
         key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-        known_hosts: ${{ secrets.LINODE_KNOWN_HOSTS }}
     
     - name: Deploy to Linode (Dev)
       if: github.ref == 'refs/heads/dev'
