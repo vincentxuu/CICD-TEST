@@ -16,6 +16,9 @@ jobs:
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+        script: |
+          eval `ssh-agent -s`
+          ssh-add ~/.ssh/git_id_rsa
 
       - name: Add known hosts
         run: |
