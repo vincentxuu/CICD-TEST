@@ -1,36 +1,27 @@
 version: '3.8'
 services:
+  app:
+    image: ${DOCKER_HUB_USERNAME}/node_app:${DOCKER_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-node_app}
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - MONGODB_URL=mongodb://mongodb:27017/${CONTAINER_NAME:-node_app}
+    ports:
+      - "${APP_PORT:-4000}:4000"
+    depends_on:
+      - mongodb
+      - redis
+
   mongodb:
     image: mongo
-    container_name: mongodb
-    ports:
-      - "27017:27017"
+    container_name: ${CONTAINER_NAME:-node_app}_mongodb
     volumes:
       - mongodb_data:/data/db
 
   redis:
     image: redis
-    container_name: redis
-    ports:
-      - "6379:6379"
-
-  app:
-    build: .
-    container_name: node_app
-    working_dir: /app
-    volumes:
-      - .:/app
-    ports:
-      - "4000:4000"
-    environment:
-      - NODE_ENV=dev
-      - MONGODB_URL=mongodb://mongodb:27017/mydatabase
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    command: ["pm2-runtime", "start", "ecosystem.config.js"]
-    depends_on:
-      - mongodb
-      - redis
+    container_name: ${CONTAINER_NAME:-node_app}_redis
 
 volumes:
   mongodb_data:
+    name: ${CONTAINER_NAME:-node_app}_mongodb_data
