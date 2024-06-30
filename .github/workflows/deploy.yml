@@ -28,7 +28,8 @@ jobs:
       uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-        known_hosts: ${{ secrets.LINODE_KNOWN_HOSTS }}
+        host: ${{ secrets.LINODE_HOST }}
+        username: ${{ secrets.LINODE_USER }}
     
     - name: Deploy to Linode (Dev)
       if: github.ref == 'refs/heads/dev'
