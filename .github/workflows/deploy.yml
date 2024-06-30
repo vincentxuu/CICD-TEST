@@ -13,12 +13,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up SSH
-        uses: zhenyuWang/Upload-File-Action@v1.0.1
+        uses: appleboy/ssh-action@master
         with:
+          host: ${{ secrets.LINODE_HOST }}
           username: ${{ secrets.LINODE_USER }}
-          server: ${{ secrets.LINODE_HOST }}
+          password: ${{ secrets.LINODE_PASSWORD }}
           port: ${{ secrets.LINODE_PORT }}
-          ssh_private_key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
 
       - name: Add known hosts
         run: |
