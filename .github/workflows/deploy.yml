@@ -1,37 +1,37 @@
 name: Deploy to Linode
 
-   on:
-     push:
-       branches: [ dev ]
+on:
+  push:
+    branches: [ dev ]
 
-   jobs:
-     deploy:
-       runs-on: ubuntu-latest
-       steps:
-       - uses: actions/checkout@v2
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-       - name: Install SSH Key
-         uses: shimataro/ssh-key-action@v2
-         with:
-           key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-           known_hosts: ${{ secrets.KNOWN_HOSTS }}
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
 
-       - name: Debug SSH connection
-         env:
-           HOST: ${{ secrets.LINODE_HOST }}
-           USER: ${{ secrets.LINODE_USER }}
-         run: |
-           ssh -v $USER@$HOST exit
+      - name: Debug SSH connection
+        env:
+          HOST: ${{ secrets.LINODE_HOST }}
+          USER: ${{ secrets.LINODE_USER }}
+        run: |
+          ssh -v $USER@$HOST exit
            
-       - name: Deploy to Linode
-         env:
-           HOST: ${{ secrets.LINODE_HOST }}
-           USER: ${{ secrets.LINODE_USER }}
-         run: |
-           scp -v docker-compose.yml docker-compose.dev.yml ecosystem.config.js $USER@$HOST:~/node_app/
-           ssh -v $USER@$HOST << EOF
-           cd ~/node_app
-           docker pull ***/node_app:dev
-           docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
-           docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-           EOF
+      - name: Deploy to Linode
+        env:
+          HOST: ${{ secrets.LINODE_HOST }}
+          USER: ${{ secrets.LINODE_USER }}
+        run: |
+          scp -v docker-compose.yml docker-compose.dev.yml ecosystem.config.js $USER@$HOST:~/node_app/
+          ssh -v $USER@$HOST << EOF
+            cd ~/node_app
+            docker pull ***/node_app:dev
+            docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+            docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+          EOF
