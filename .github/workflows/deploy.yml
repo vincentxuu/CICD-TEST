@@ -30,7 +30,8 @@ jobs:
       with:
         host: ${{ secrets.LINODE_DEV_HOST }}
         username: ${{ secrets.LINODE_USER }}
-        key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+        password: ${{ secrets.LINODE_PASSWORD }}
+        port: ${{ secrets.LINODE_PORT }}
         script: |
           scp docker-compose.yml docker-compose.dev.yml ecosystem.config.js ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_DEV_HOST }}:~/node_app/
           ssh ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_DEV_HOST }} << EOF
@@ -46,7 +47,8 @@ jobs:
       with:
         host: ${{ secrets.LINODE_PROD_HOST }}
         username: ${{ secrets.LINODE_USER }}
-        key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+        password: ${{ secrets.LINODE_PASSWORD }}
+        port: ${{ secrets.LINODE_PORT }}
         script: |
           scp docker-compose.yml docker-compose.prod.yml ecosystem.config.js ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_PROD_HOST }}:~/node_app/
           ssh ${{ secrets.LINODE_USER }}@${{ secrets.LINODE_PROD_HOST }} << EOF
