@@ -13,12 +13,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
+        uses: zhenyuWang/Upload-File-Action@v1.0.1
         with:
-          ssh-private-key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-          script: |
-            eval `ssh-agent -s`
-            ssh-add ~/.ssh/git_id_rsa
+          username: ${{ secrets.LINODE_USER }}
+          server: ${{ secrets.LINODE_HOST }}
+          port: ${{ secrets.LINODE_PORT }}
+          ssh_private_key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
 
       - name: Add known hosts
         run: |
