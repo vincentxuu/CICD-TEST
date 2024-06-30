@@ -27,6 +27,7 @@ jobs:
     - name: Install SSH key
       uses: appleboy/ssh-action@v1.0.3
       with:
+        host: ${{ secrets.LINODE_HOST }}
         key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
         known_hosts: ${{ secrets.LINODE_KNOWN_HOSTS }}
     
