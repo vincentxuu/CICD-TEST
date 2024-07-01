@@ -65,6 +65,7 @@ jobs:
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
           echo "Starting deployment to Linode instance $LINODE_INSTANCE_IP"
           ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
@@ -75,6 +76,9 @@ jobs:
             ls -la && 
             if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ]; then
               echo 'Docker Compose files found. Proceeding with deployment.' &&
+              export DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME &&
+              docker-compose version &&
+              docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml config &&
               docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml down && 
               docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml up -d
             else
