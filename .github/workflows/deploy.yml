@@ -1,46 +1,42 @@
-name: Deploy to Linode
+name: Deploy to Linode using Linode CLI
 
 on:
   push:
-    branches:
-      - dev
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      - name: install ssh keys
-          # check this thread to understand why its needed:
-          # <https://stackoverflow.com/a/70447517>
+      - name: Install Linode CLI
         run: |
-          install -m 600 -D /dev/null ~/.ssh/id_rsa
-          echo "${{ secrets.LINODE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.LINODE_HOST }} > ~/.ssh/known_hosts
-      - name: Add known hosts
-        run: |
-          mkdir -p ~/.ssh
-          echo "$LINODE_KNOWN_HOSTS" > ~/.ssh/known_hosts
-        env:
-          LINODE_KNOWN_HOSTS: ${{ secrets.LINODE_KNOWN_HOSTS }}
+          pip install linode-cli
 
-      - name: Copy files to server
-        run: |
-          scp docker-compose.yml docker-compose.dev.yml ecosystem.config.js $LINODE_USER@$LINODE_HOST:~/node_app/
+      - name: Configure Linode CLI
         env:
-          LINODE_USER: ${{ secrets.LINODE_USER }}
-          LINODE_HOST: ${{ secrets.LINODE_HOST }}
+          LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
+        run: |
+          echo "export LINODE_CLI_TOKEN=$LINODE_CLI_TOKEN" >> $HOME/.bashrc
+          source $HOME/.bashrc
 
-      - name: Deploy application
-        run: |
-          ssh $LINODE_USER@$LINODE_HOST << EOF
-            cd ~/node_app
-            docker pull ***/node_app:dev
-            docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
-            docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-          EOF
+      - name: Deploy to Linode
         env:
-          LINODE_USER: ${{ secrets.LINODE_USER }}
-          LINODE_HOST: ${{ secrets.LINODE_HOST }}
+          LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
+        run: |
+          # 更新 Linode 實例
+          linode-cli linodes update $LINODE_INSTANCE_ID --label "Updated App Instance"
+
+          # 使用 Linode CLI 執行遠程命令
+          linode-cli linodes ssh $LINODE_INSTANCE_ID "cd ~/node_app && \
+            git pull origin main && \
+            docker-compose -f docker-compose.yml -f docker-compose.dev.yml down && \
+            docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d"
+
+      - name: Verify Deployment
+        env:
+          LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
+        run: |
+          # 檢查應用狀態
+          linode-cli linodes ssh $LINODE_INSTANCE_ID "docker ps"
