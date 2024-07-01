@@ -24,4 +24,4 @@ services:
 
 volumes:
   mongodb_data:
-    name: ${CONTAINER_NAME:-node_app}_mongodb_data
+    driver: local
