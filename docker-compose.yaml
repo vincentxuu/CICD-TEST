@@ -3,6 +3,8 @@ services:
   app:
     image: ${DOCKER_HUB_USERNAME}/node_app:${DOCKER_TAG:-dev}
     container_name: ${CONTAINER_NAME:-node_app}
+    env_file:
+      - .env
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - MONGODB_URL=mongodb://mongodb:27017/${CONTAINER_NAME:-node_app}
