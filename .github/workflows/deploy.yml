@@ -22,22 +22,30 @@ jobs:
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
         run: |
-          echo "export LINODE_CLI_TOKEN=$LINODE_CLI_TOKEN" >> $HOME/.bashrc
-          source $HOME/.bashrc
+          mkdir -p ~/.config/linode-cli
+          echo -e "[DEFAULT]\ntoken = $LINODE_CLI_TOKEN" > ~/.config/linode-cli/config
+
+      - name: Verify Linode CLI Configuration
+        run: |
+          linode-cli --version
+          linode-cli linodes list
 
       - name: Deploy to Linode
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
           LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
         run: |
           # 更新 Linode 實例
-          linode-cli linodes update $LINODE_INSTANCE_ID --label "Updated App Instance"
+          linode-cli linodes update $LINODE_INSTANCE_ID --label "Updated Dev App Instance"
 
+          # 使用 Linode CLI 執行遠程命令
           linode-cli linodes ssh $LINODE_INSTANCE_ID "cd ~/node_app && \
-            git pull origin main && \
+            git pull origin dev && \
             docker-compose -f docker-compose.yml -f docker-compose.dev.yml down && \
             docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d"
 
       - name: Verify Deployment
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
           LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
         run: |
