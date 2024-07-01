@@ -43,10 +43,10 @@ jobs:
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
-          LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
+          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
         run: |
-          echo "Starting deployment to Linode instance $LINODE_INSTANCE_ID"
-          linode-cli --no-defaults linodes ssh $LINODE_INSTANCE_ID "cd ~/node_app && \
+          echo "Starting deployment to Linode instance $LINODE_INSTANCE_IP"
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "cd ~/node_app && \
             git pull origin dev && \
             docker-compose -f docker-compose.yml -f docker-compose.dev.yml down && \
             docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d" || echo "Deployment failed"
@@ -55,7 +55,7 @@ jobs:
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
-          LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
+          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
         run: |
           echo "Verifying deployment"
-          linode-cli --no-defaults linodes ssh $LINODE_INSTANCE_ID "docker ps" || echo "Failed to verify deployment"
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "docker ps" || echo "Failed to verify deployment"
