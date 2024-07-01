@@ -1,5 +1,4 @@
 name: Deploy to Linode using Linode CLI
-
 on:
   push:
     branches:
@@ -7,33 +6,32 @@ on:
   pull_request:
     branches:
       - dev
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
+      
       - name: Install Linode CLI
         run: |
           pip install linode-cli
-
+      
       - name: Verify Linode CLI Installation
         run: |
           linode-cli --version
-
+      
       - name: Configure and Test Linode CLI
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
         run: |
           export LINODE_CLI_TOKEN
           linode-cli --no-defaults linodes list || echo "Failed to list Linodes"
-
+      
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
-
+      
       - name: Update Linode Instance
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
@@ -43,7 +41,7 @@ jobs:
           NEW_LABEL="UpdatedDevAppInstance-$(date +%Y%m%d-%H%M%S)"
           echo "Updating Linode instance with label: $NEW_LABEL"
           linode-cli --no-defaults linodes update $LINODE_INSTANCE_ID --label "$NEW_LABEL" || echo "Failed to update Linode label"
-
+      
       - name: Ensure Docker and Directory on Linode
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
@@ -51,8 +49,15 @@ jobs:
           REPO_URL: ${{ secrets.REPO_URL }}
         run: |
           echo "Ensuring Docker is installed and target directory exists on Linode instance $LINODE_INSTANCE_IP"
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "apt-get update && apt-get install -y docker.io docker-compose && mkdir -p /root/node_app && cd /root/node_app && git init && git remote add origin $REPO_URL" || echo "Failed to set up Linode instance"
-
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
+            apt-get update && 
+            apt-get install -y docker.io docker-compose && 
+            mkdir -p /root/node_app && 
+            cd /root/node_app && 
+            git init && 
+            git remote add origin $REPO_URL
+          " || echo "Failed to set up Linode instance"
+      
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
@@ -60,11 +65,21 @@ jobs:
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
         run: |
           echo "Starting deployment to Linode instance $LINODE_INSTANCE_IP"
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "cd /root/node_app && \
-            git pull origin dev && \
-            docker-compose -f docker-compose.yml -f docker-compose.dev.yml down && \
-            docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d" || echo "Deployment failed"
-
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
+            cd /root/node_app && 
+            git fetch origin dev &&
+            git reset --hard origin/dev &&
+            echo 'Contents of /root/node_app:' && 
+            ls -la && 
+            if [ -f docker-compose.yml ] && [ -f docker-compose.override.yml ]; then
+              docker-compose -f /root/node_app/docker-compose.yml -f /root/node_app/docker-compose.override.yml down && 
+              docker-compose -f /root/node_app/docker-compose.yml -f /root/node_app/docker-compose.override.yml up -d
+            else
+              echo 'Error: docker-compose files not found'
+              exit 1
+            fi
+          " || echo "Deployment failed"
+      
       - name: Verify Deployment
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
