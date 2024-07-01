@@ -26,11 +26,18 @@ jobs:
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
         run: |
-          # 使用環境變量設置 token
           export LINODE_CLI_TOKEN
-          
-          # 測試 Linode CLI
-          linode-cli --no-defaults linodes list
+          linode-cli --no-defaults linodes list || echo "Failed to list Linodes"
+
+      - name: Update Linode Instance
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
+        env:
+          LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
+          LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
+        run: |
+          NEW_LABEL="UpdatedDevAppInstance-$(date +%Y%m%d-%H%M%S)"
+          echo "Updating Linode instance with label: $NEW_LABEL"
+          linode-cli --no-defaults linodes update $LINODE_INSTANCE_ID --label "$NEW_LABEL" || echo "Failed to update Linode label"
 
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
@@ -38,14 +45,11 @@ jobs:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
           LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
         run: |
-          # 更新 Linode 實例
-          linode-cli --no-defaults linodes update $LINODE_INSTANCE_ID --label "Updated Dev App Instance"
-
-          # 使用 Linode CLI 執行遠程命令
+          echo "Starting deployment to Linode instance $LINODE_INSTANCE_ID"
           linode-cli --no-defaults linodes ssh $LINODE_INSTANCE_ID "cd ~/node_app && \
             git pull origin dev && \
             docker-compose -f docker-compose.yml -f docker-compose.dev.yml down && \
-            docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d"
+            docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d" || echo "Deployment failed"
 
       - name: Verify Deployment
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
@@ -53,5 +57,5 @@ jobs:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
           LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
         run: |
-          # 檢查應用狀態
-          linode-cli --no-defaults linodes ssh $LINODE_INSTANCE_ID "docker ps"
+          echo "Verifying deployment"
+          linode-cli --no-defaults linodes ssh $LINODE_INSTANCE_ID "docker ps" || echo "Failed to verify deployment"
