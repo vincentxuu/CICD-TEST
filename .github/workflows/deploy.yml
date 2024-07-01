@@ -44,6 +44,14 @@ jobs:
           echo "Updating Linode instance with label: $NEW_LABEL"
           linode-cli --no-defaults linodes update $LINODE_INSTANCE_ID --label "$NEW_LABEL" || echo "Failed to update Linode label"
 
+      - name: Ensure Docker and Directory on Linode
+        env:
+          LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
+          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
+        run: |
+          echo "Ensuring Docker is installed and target directory exists on Linode instance $LINODE_INSTANCE_IP"
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "apt-get update && apt-get install -y docker.io docker-compose && mkdir -p /root/node_app" || echo "Failed to set up Linode instance"
+
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
@@ -51,7 +59,7 @@ jobs:
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
         run: |
           echo "Starting deployment to Linode instance $LINODE_INSTANCE_IP"
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "cd ~/node_app && \
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "cd /root/node_app && \
             git pull origin dev && \
             docker-compose -f docker-compose.yml -f docker-compose.dev.yml down && \
             docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d" || echo "Deployment failed"
