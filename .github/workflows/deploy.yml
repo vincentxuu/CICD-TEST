@@ -1,4 +1,5 @@
 name: Deploy to Linode using Linode CLI
+
 on:
   push:
     branches:
@@ -6,6 +7,7 @@ on:
   pull_request:
     branches:
       - dev
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -71,11 +73,13 @@ jobs:
             git reset --hard origin/dev &&
             echo 'Contents of /root/node_app:' && 
             ls -la && 
-            if [ -f docker-compose.yml ] && [ -f docker-compose.override.yml ]; then
-              docker-compose -f /root/node_app/docker-compose.yml -f /root/node_app/docker-compose.override.yml down && 
-              docker-compose -f /root/node_app/docker-compose.yml -f /root/node_app/docker-compose.override.yml up -d
+            if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ]; then
+              echo 'Docker Compose files found. Proceeding with deployment.' &&
+              docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml down && 
+              docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml up -d
             else
-              echo 'Error: docker-compose files not found'
+              echo 'Error: docker-compose files not found. Listing all yaml files:' &&
+              ls -la *.yaml *.yml
               exit 1
             fi
           " || echo "Deployment failed"
