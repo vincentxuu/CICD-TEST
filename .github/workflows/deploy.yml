@@ -50,7 +50,7 @@ jobs:
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
         run: |
           echo "Ensuring Docker is installed and target directory exists on Linode instance $LINODE_INSTANCE_IP"
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "apt-get update && apt-get install -y docker.io docker-compose && mkdir -p /root/node_app" || echo "Failed to set up Linode instance"
+          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "apt-get update && apt-get install -y docker.io docker-compose && mkdir -p /root/node_app && cd /root/node_app && git init" || echo "Failed to set up Linode instance"
 
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
