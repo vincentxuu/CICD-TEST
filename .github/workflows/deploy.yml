@@ -76,7 +76,6 @@ jobs:
             if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ] && [ -f .env ]; then
               echo 'Docker Compose and .env files found. Proceeding with deployment.' &&
               echo 'Contents of .env file:' &&
-              cat .env &&
               set -o allexport && source .env && set +o allexport &&
               echo 'Environment variables loaded:' &&
               env | grep -E '^(PORT|NODE_ENV|MONGO_URL|REDIS_HOST|DOCKER_HUB_USERNAME|DOCKER_TAG|CONTAINER_NAME)' &&
@@ -91,11 +90,19 @@ jobs:
               exit 1
             fi
           "
-      
+            
       - name: Verify Deployment
-        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
-        env:
-          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
-        run: |
-          echo "Verifying deployment"
-          ssh root@$LINODE_INSTANCE_IP "docker ps && docker-compose -f docker-compose.yaml -f docker-compose.override.yaml logs --tail=50"
+              if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
+              env:
+                LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
+              run: |
+                echo "Verifying deployment"
+                ssh root@$LINODE_INSTANCE_IP "
+                  cd /root/node_app &&
+                  docker ps &&
+                  if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ]; then
+                    docker-compose -f docker-compose.yaml -f docker-compose.override.yaml logs --tail=50
+                  else
+                    echo 'Warning: docker-compose files not found. Skipping logs.'
+                  fi
+                "
