@@ -86,7 +86,8 @@ jobs:
               env | grep -E '^(PORT|NODE_ENV|MONGO_URL|REDIS_HOST|DOCKER_HUB_USERNAME|DOCKER_TAG|CONTAINER_NAME)' &&
               docker-compose version &&
               docker-compose -f docker-compose.yaml -f docker-compose.override.yaml config &&
-              docker-compose -f docker-compose.yaml -f docker-compose.override.yaml down &&
+              docker-compose -f docker-compose.yaml -f docker-compose.override.yaml down --remove-orphans &&
+              docker network create nodeapp_default || true &&
               docker-compose -f docker-compose.yaml -f docker-compose.override.yaml up -d --env-file .env
             else
               echo 'Error: docker-compose files or .env file not found. Listing all yaml files:' &&
@@ -94,6 +95,7 @@ jobs:
               exit 1
             fi
           " 2>&1 | tee deployment.log || echo "Deployment failed"
+        shell: /usr/bin/bash -e {0}
       
       - name: Verify Deployment
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
