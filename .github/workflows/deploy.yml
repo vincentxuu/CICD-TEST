@@ -12,22 +12,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - name: Install Linode CLI
-        run: |
-          pip install linode-cli
+        run: pip install linode-cli
       
       - name: Verify Linode CLI Installation
-        run: |
-          linode-cli --version
+        run: linode-cli --version
       
       - name: Configure and Test Linode CLI
         env:
           LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
         run: |
           export LINODE_CLI_TOKEN
-          linode-cli --no-defaults linodes list || echo "Failed to list Linodes"
+          linode-cli --no-defaults linodes list
           
       - name: Set up SSH
         env:
@@ -36,6 +34,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.LINODE_INSTANCE_IP }} >> ~/.ssh/known_hosts
 
       - name: Update Linode Instance
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
@@ -44,34 +43,31 @@ jobs:
           LINODE_INSTANCE_ID: ${{ secrets.LINODE_INSTANCE_ID }}
         run: |
           NEW_LABEL="UpdatedDevAppInstance-$(date +%Y%m%d-%H%M%S)"
-          echo "Updating Linode instance with label: $NEW_LABEL"
-          linode-cli --no-defaults linodes update $LINODE_INSTANCE_ID --label "$NEW_LABEL" || echo "Failed to update Linode label"
+          linode-cli --no-defaults linodes update $LINODE_INSTANCE_ID --label "$NEW_LABEL"
       
       - name: Ensure Docker and Directory on Linode
         env:
-          LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
           REPO_URL: ${{ secrets.REPO_URL }}
         run: |
-          echo "Ensuring Docker is installed and target directory exists on Linode instance $LINODE_INSTANCE_IP"
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
+          ssh root@$LINODE_INSTANCE_IP "
             apt-get update && 
-            apt-get install -y docker.io docker-compose && 
+            apt-get install -y docker.io docker-compose &&
+            systemctl start docker &&
+            systemctl enable docker &&
             mkdir -p /root/node_app && 
             cd /root/node_app && 
             git init && 
-            git remote add origin $REPO_URL
-          " || echo "Failed to set up Linode instance"
+            git remote add origin $REPO_URL || git remote set-url origin $REPO_URL
+          "
       
       - name: Deploy to Linode
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
-          LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
         run: |
-          echo "Starting deployment to Linode instance $LINODE_INSTANCE_IP"
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
+          ssh root@$LINODE_INSTANCE_IP "
             cd /root/node_app &&
             git fetch origin dev &&
             git reset --hard origin/dev &&
@@ -88,20 +84,18 @@ jobs:
               docker-compose -f docker-compose.yaml -f docker-compose.override.yaml config &&
               docker-compose -f docker-compose.yaml -f docker-compose.override.yaml down --remove-orphans &&
               docker network create nodeapp_default || true &&
-              docker-compose -f docker-compose.yaml -f docker-compose.override.yaml up -d --env-file .env
+              docker-compose -f docker-compose.yaml -f docker-compose.override.yaml up -d --build
             else
               echo 'Error: docker-compose files or .env file not found. Listing all yaml files:' &&
               ls -la *.yaml *.yml .env &&
               exit 1
             fi
-          " 2>&1 | tee deployment.log || echo "Deployment failed"
-        shell: /usr/bin/bash -e {0}
+          "
       
       - name: Verify Deployment
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
         env:
-          LINODE_CLI_TOKEN: ${{ secrets.LINODE_CLI_TOKEN }}
           LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
         run: |
           echo "Verifying deployment"
-          ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "docker ps" || echo "Failed to verify deployment"
+          ssh root@$LINODE_INSTANCE_IP "docker ps && docker-compose -f docker-compose.yaml -f docker-compose.override.yaml logs --tail=50"
