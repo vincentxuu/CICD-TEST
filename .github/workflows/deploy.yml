@@ -72,21 +72,27 @@ jobs:
         run: |
           echo "Starting deployment to Linode instance $LINODE_INSTANCE_IP"
           ssh -o StrictHostKeyChecking=no root@$LINODE_INSTANCE_IP "
-            cd /root/node_app && 
+            cd /root/node_app &&
             git fetch origin dev &&
             git reset --hard origin/dev &&
-            echo 'Contents of /root/node_app:' && 
-            ls -la && 
+            echo 'Contents of /root/node_app:' &&
+            ls -la &&
             if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ]; then
               echo 'Docker Compose files found. Proceeding with deployment.' &&
               export DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME &&
               docker-compose version &&
-              docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml config &&
-              docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml down && 
-              docker-compose -f /root/node_app/docker-compose.yaml -f /root/node_app/docker-compose.override.yaml up -d
+              docker-compose -f docker-compose.yaml -f docker-compose.override.yaml config &&
+              if [ -f .env ]; then
+                echo '.env file found. Proceeding with deployment.' &&
+                docker-compose -f docker-compose.yaml -f docker-compose.override.yaml down &&
+                docker-compose -f docker-compose.yaml -f docker-compose.override.yaml up -d --env-file .env
+              else
+                echo 'Error: .env file not found.'
+                exit 1
+              fi
             else
               echo 'Error: docker-compose files not found. Listing all yaml files:' &&
-              ls -la *.yaml *.yml
+              ls -la *.yaml *.yml &&
               exit 1
             fi
           " || echo "Deployment failed"
