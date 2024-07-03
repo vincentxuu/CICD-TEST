@@ -92,17 +92,17 @@ jobs:
           "
             
       - name: Verify Deployment
-              if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
-              env:
-                LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
-              run: |
-                echo "Verifying deployment"
-                ssh root@$LINODE_INSTANCE_IP "
-                  cd /root/node_app &&
-                  docker ps &&
-                  if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ]; then
-                    docker-compose -f docker-compose.yaml -f docker-compose.override.yaml logs --tail=50
-                  else
-                    echo 'Warning: docker-compose files not found. Skipping logs.'
-                  fi
-                "
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
+        env:
+          LINODE_INSTANCE_IP: ${{ secrets.LINODE_INSTANCE_IP }}
+        run: |
+          echo "Verifying deployment"
+          ssh root@$LINODE_INSTANCE_IP "
+            cd /root/node_app &&
+            docker ps &&
+            if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ]; then
+              docker-compose -f docker-compose.yaml -f docker-compose.override.yaml logs --tail=50
+            else
+              echo 'Warning: docker-compose files not found. Skipping logs.'
+            fi
+          "
