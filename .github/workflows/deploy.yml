@@ -79,6 +79,8 @@ jobs:
             ls -la &&
             if [ -f docker-compose.yaml ] && [ -f docker-compose.override.yaml ] && [ -f .env ]; then
               echo 'Docker Compose and .env files found. Proceeding with deployment.' &&
+              echo 'Contents of .env file:' &&
+              cat .env &&
               export DOCKER_HUB_USERNAME=$DOCKER_HUB_USERNAME &&
               docker-compose version &&
               docker-compose -f docker-compose.yaml -f docker-compose.override.yaml config &&
@@ -89,7 +91,7 @@ jobs:
               ls -la *.yaml *.yml .env &&
               exit 1
             fi
-          " || echo "Deployment failed"
+          " 2>&1 | tee deployment.log || echo "Deployment failed"
       
       - name: Verify Deployment
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
